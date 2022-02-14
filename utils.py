@@ -34,11 +34,11 @@ class BrainTumorDataSet(Dataset):
         # and normalize it in (0~1) range.
         
         if self.transform is not None:
-            image, mask = self.transform(image)/255., self.transform(mask)/255.
+            image, mask = self.transform(image), self.transform(mask)
 
         else:
             convert_tensor = transforms.ToTensor()
-            image, mask = convert_tensor(image)/255., convert_tensor(mask)/255.
+            image, mask = convert_tensor(image), convert_tensor(mask)
 
 
         return image, mask
