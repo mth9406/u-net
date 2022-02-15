@@ -14,9 +14,9 @@ def argparser():
     p = argparse.ArgumentParser()
     p.add_argument('--model_path', type= str, required= True, 
                 help= 'a path to model (.ckpt format)')
-    p.add_argument('--test_path', type= str, default= './data/test',
+    p.add_argument('--test_path', type= str, default= './data(jpeg)/test',
                 help= 'a path to test dataset')
-    p.add_argument('--prediction_path', type= str, default= './data/mask_prediction',
+    p.add_argument('--prediction_path', type= str, default= './data(jpeg)/mask_prediction',
                 help= 'a path to save predictions')
     p.add_argument('--thr', type= float, default=0.5,
                 help= 'threshold to generate a mask')
@@ -37,7 +37,7 @@ def main(config):
     model.to(device)
 
     test_datasets = BrainTumorDataSet(config.test_path)
-    test_data_names = glob(os.path.join(config.test_path, 'images/*.png'))
+    test_data_names = glob(os.path.join(config.test_path, 'images/*.jpeg'))
     temp = os.path.join(config.test_path,'images')
     pred_data_names = list(map(lambda x:x.replace(temp, config.prediction_path), test_data_names))
     test_ds = DataLoader(test_datasets, batch_size = config.batch_size, shuffle= False)
