@@ -30,31 +30,31 @@ class Unet(pl.LightningModule):
         
         self.lr = lr
 
-        self.conv1 = DoubleConv(in_channels, 64)
-        self.conv2 = DoubleConv(64, 128)
-        self.conv3 = DoubleConv(128, 256)
-        self.conv4 = DoubleConv(256, 512)
-        self.conv5 = DoubleConv(512, 1024)
+        self.conv1 = DoubleConv(in_channels, 32)
+        self.conv2 = DoubleConv(32, 64)
+        self.conv3 = DoubleConv(64, 128)
+        self.conv4 = DoubleConv(128, 256)
+        self.conv5 = DoubleConv(256, 512)
         
         self.pool = nn.MaxPool2d(kernel_size=2, stride=2)
         # halves the H X W
         
-        self.up1 = nn.ConvTranspose2d(in_channels = 1024, 
-                    out_channels =512, kernel_size = 2, stride= 2)
-        self.up2 = nn.ConvTranspose2d(in_channels = 512, 
+        self.up1 = nn.ConvTranspose2d(in_channels = 512, 
                     out_channels =256, kernel_size = 2, stride= 2)
-        self.up3 = nn.ConvTranspose2d(in_channels = 256, 
+        self.up2 = nn.ConvTranspose2d(in_channels = 256, 
                     out_channels =128, kernel_size = 2, stride= 2)
-        self.up4 = nn.ConvTranspose2d(in_channels = 128, 
+        self.up3 = nn.ConvTranspose2d(in_channels = 128, 
                     out_channels =64, kernel_size = 2, stride= 2)
+        self.up4 = nn.ConvTranspose2d(in_channels = 64, 
+                    out_channels =32, kernel_size = 2, stride= 2)
         
-        self.up_conv1 = DoubleConv(1024, 512)
-        self.up_conv2 = DoubleConv(512, 256)
-        self.up_conv3 = DoubleConv(256, 128)
-        self.up_conv4 = DoubleConv(128, 64)
+        self.up_conv1 = DoubleConv(512, 256)
+        self.up_conv2 = DoubleConv(256, 128)
+        self.up_conv3 = DoubleConv(128, 64)
+        self.up_conv4 = DoubleConv(64, 32)
 
         self.decode = nn.Sequential(
-            nn.Conv2d(64, out_channels, 1),
+            nn.Conv2d(32, out_channels, 1),
             nn.Sigmoid()
         )
         
