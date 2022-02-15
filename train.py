@@ -1,9 +1,9 @@
 from gc import callbacks
-from tabnanny import check
 from torchvision import transforms
 import torch
 from torch.utils.data import DataLoader
 from pytorch_lightning.callbacks import ModelCheckpoint
+from pytorch_lightning.callbacks.early_stopping import EarlyStopping
 from utils import *
 from model import *
 import argparse
@@ -13,9 +13,9 @@ def argparser():
 
     # arguments
     # train, valid, test data path
-    p.add_argument('--train_path', type= str, default= './data/train')
-    p.add_argument('--valid_path', type= str, default= './data/valid')
-    p.add_argument('--test_path', type= str, default= './data/test')
+    p.add_argument('--train_path', type= str, default= './data(jpeg)/train')
+    p.add_argument('--valid_path', type= str, default= './data(jpeg)/valid')
+    p.add_argument('--test_path', type= str, default= './data(jpeg)/test')
     
     # data augmentation arguments
     p.add_argument('--rot_degree', type= float, default= 60,
@@ -38,7 +38,8 @@ def argparser():
     p.add_argument('--batch_size', type= int, default= 32)
     p.add_argument('--ds_num_workers', type= int, default= 4,
                     help= 'the number of workers in a Dataloader')
-
+    p.add_argument('--patience', type= int, default = 3,
+                help= 'patience of EarlyStopping')
     # model path
     p.add_argument('--model_name', type= str, default= 'prototype')
     p.add_argument('--checkpoints', type= str, default= './model/checkpoints')
@@ -71,7 +72,8 @@ def main(config):
             checkpoint_callback=True,
             logger=True,
             max_epochs=config.max_epochs, gpus=gpus,
-            weights_save_path= './model'
+            weights_save_path= './model',
+            callbacks= [EarlyStopping(monitor="val_loss", patience= config.patience)]
     )
 
     # checkpoint_callback = ModelCheckpoint(
@@ -82,8 +84,7 @@ def main(config):
     #                             )
 
     trainer.fit(u_net, 
-                train_ds, valid_ds,
-                # callbacks= [checkpoint_callback],
+                train_ds, valid_ds
                 )
 
     
