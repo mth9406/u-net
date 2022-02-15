@@ -96,6 +96,12 @@ class Unet(pl.LightningModule):
         
         return outputs
 
+    def predict(self, x, thr= 0.5):
+        p = self(x)
+        p[p > thr] = 255 
+        p[p < thr] = 0
+        return p
+
     def training_step(self, batch, batch_idx):
         x, y = batch
         y_hat = self(x)

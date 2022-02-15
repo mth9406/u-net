@@ -18,6 +18,8 @@ def argparser():
                 help= 'a path to test dataset')
     p.add_argument('--prediction_path', type= str, default= './data/mask_prediction',
                 help= 'a path to save predictions')
+    p.add_argument('--thr', type= float, default=0.5,
+                help= 'threshold to generate a mask')
     p.add_argument('--batch_size', type= int, default= 32)
     p.add_argument('--in_channels', type= int, default= 1)
     p.add_argument('--out_channels', type= int, default= 1)
@@ -48,8 +50,10 @@ def main(config):
         model.eval()
         with torch.no_grad():
             img = img.to(device)
-            pred = model(img)
-            preds.append(pred.detach())
+            pred = model(img).detach().cpu()
+            pred[pred > config.thr] = 1.
+            pred[pred < config.thr] = 0.
+            preds.append(pred)
     
     preds = torch.cat(preds, dim=0) # N, 1, 512, 512
     print(f'converting torch to PIL images and save in {config.prediction_path}...')
