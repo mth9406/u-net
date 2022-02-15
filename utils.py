@@ -4,6 +4,8 @@ from torch.utils.data import Dataset
 import os
 # import cv2
 from PIL import Image
+import numpy as np
+import random
 
 import sys
 from glob import glob
@@ -34,11 +36,21 @@ class BrainTumorDataSet(Dataset):
         # and normalize it in (0~1) range.
         
         if self.transform is not None:
-            image, mask = self.transform(image), self.transform(mask)
+            # make seed
+            seed = np.random.randint(2147483647)
+            # apply this seed to both image and mask
+            random.seed(seed)
+            torch.manual_seed(seed)
+            image = self.transform(image)
+            
+            random.seed(seed) 
+            torch.manual_seed(seed)
+            mask = self.transform(mask)
 
         else:
             convert_tensor = transforms.ToTensor()
-            image, mask = convert_tensor(image), convert_tensor(mask)
+            image = convert_tensor(image)
+            mask = convert_tensor(mask)
 
 
         return image, mask
