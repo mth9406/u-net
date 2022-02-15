@@ -1,6 +1,7 @@
 from gc import callbacks
 from tabnanny import check
 from torchvision import transforms
+import torch
 from torch.utils.data import DataLoader
 from pytorch_lightning.callbacks import ModelCheckpoint
 from utils import *
@@ -17,13 +18,15 @@ def argparser():
     p.add_argument('--test_path', type= str, default= './data/test')
     
     # data augmentation arguments
-    p.add_argument('--rot_degree', type= float, default= 10,
+    p.add_argument('--rot_degree', type= float, default= 60,
                 help= 'degree of RandomRotation')
-    p.add_argument('--flip_prob', type= float, default= 0.5,
+    p.add_argument('--v_flip_prob', type= float, default= 0.5,
                 help= 'probability of RandomVerticalFlip')
+    p.add_argument('--h_flip_prob', type= float, default= 0.5,
+                help= 'probability of RandomHorizontalFlip')
     p.add_argument('--distortion_scale', type= float, default= 0.3,
                 help= 'distortion scale of RandomPerspective')
-    p.add_argument('--distortion_prob', type= float, default= 0.1)
+    p.add_argument('--distortion_prob', type= float, default= 0.3)
     
     # model configs
     p.add_argument('--in_channels', type= int, default= 1)
@@ -46,8 +49,9 @@ def argparser():
 def main(config):
     # Data augmentation
     transform = transforms.Compose(
-        [transforms.RandomRotation(config.rot_degree), 
-        transforms.RandomVerticalFlip(config.flip_prob),
+        [transforms.RandomRotation([-config.rot_degree, config.rot_degree]), 
+        transforms.RandomVerticalFlip(config.h_flip_prob),
+        transforms.RandomHorizontalFlip(config.v_flip_prob),
         transforms.RandomPerspective(distortion_scale= config.distortion_scale, p= config.distortion_prob),
         transforms.ToTensor()
         ])

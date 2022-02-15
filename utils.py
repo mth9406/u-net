@@ -69,3 +69,10 @@ class BrainTumorDataSet(Dataset):
             image = image.resize((512, 512))
         return image
 
+# evaluation measure
+def mask_intersection_over_union(target, prediction):
+    intersection = np.logical_and(target, prediction)
+    union = np.logical_or(target, prediction)
+    iou_score = intersection.sum()/ union.sum()
+    return iou_score
+    
