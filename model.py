@@ -2,6 +2,7 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 import pytorch_lightning as pl
+from utils import *
 
 class DoubleConv(nn.Module):
 
@@ -106,18 +107,29 @@ class Unet(pl.LightningModule):
         return p
 
     def training_step(self, batch, batch_idx):
-        x, y = batch
+        x, y= batch
         y_hat = self(x)
-        loss = F.binary_cross_entropy(y_hat, y)
+        w = []
+        for yi in y:
+            w.append(unet_weight_map(yi.squeeze())[None, ...]) #####
+        w = torch.cat(w, dim= 0)[:, None, ...]
+        w = w.to(y.device)
+        loss = F.binary_cross_entropy(y_hat, y, w)
         self.log("train_loss", loss, on_step= True, 
                     on_epoch= True, prog_bar=True, logger=True)
         return loss
     
     def validation_step(self, batch, batch_idx):
-        x, y = batch
+        x, y= batch
         y_hat = self(x)
-        loss = F.binary_cross_entropy(y_hat, y)
-        self.log('val_loss', loss)
+        w = []
+        for yi in y:
+            w.append(unet_weight_map(yi.squeeze())[None, ...]) #####
+        w = torch.cat(w, dim= 0)[:, None, ...]
+        w = w.to(y.device)
+        loss = F.binary_cross_entropy(y_hat, y, w)
+        self.log('val_loss', loss, on_step= True, 
+                    on_epoch= True, prog_bar=True, logger=True)
         return loss
 
     def test_step(self, batch, batch_idx):
@@ -240,16 +252,27 @@ class DeepUnet(pl.LightningModule):
     def training_step(self, batch, batch_idx):
         x, y = batch
         y_hat = self(x)
-        loss = F.binary_cross_entropy(y_hat, y)
+        w = []
+        for yi in y.cpu():
+            w.append(unet_weight_map(yi.squeeze())[None, ...]) #####
+        w = torch.cat(w, dim= 0)[:, None, ...]
+        w = w.to(y.device)
+        loss = F.binary_cross_entropy(y_hat, y, w)
         self.log("train_loss", loss, on_step= True, 
                     on_epoch= True, prog_bar=True, logger=True)
         return loss
     
     def validation_step(self, batch, batch_idx):
-        x, y = batch
+        x, y= batch
         y_hat = self(x)
-        loss = F.binary_cross_entropy(y_hat, y)
-        self.log('val_loss', loss)
+        w = []
+        for yi in y.cpu():
+            w.append(unet_weight_map(yi.squeeze())[None, ...]) #####
+        w = torch.cat(w, dim= 0)[:, None, ...]
+        w = w.to(y.device)
+        loss = F.binary_cross_entropy(y_hat, y, w)
+        self.log('val_loss', loss, on_step= True, 
+                    on_epoch= True, prog_bar=True, logger=True)
         return loss
 
     def test_step(self, batch, batch_idx):
