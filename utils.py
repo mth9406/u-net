@@ -32,7 +32,7 @@ class BrainTumorDataSet(Dataset):
 
     def __getitem__(self, idx):
         image, mask =\
-             self._get_image(self.images_path[idx]), self._get_image(self.masks_path[idx])
+             self._get_image(self.images_path[idx]), self._get_image(self.masks_path[idx], convert= True)
         # transfrom numpy to tensor
         # and normalize it in (0~1) range.
         
@@ -59,7 +59,7 @@ class BrainTumorDataSet(Dataset):
     def __len__(self):
         return len(self.images_path)
 
-    def _get_image(self, path):
+    def _get_image(self, path, convert= False):
         image= Image.open(path)
         if image is None:
             print('--(!) Image load failed')
@@ -67,6 +67,8 @@ class BrainTumorDataSet(Dataset):
         h, w = image.size[:2]
         if h != 512 or w != 512:
             image = image.resize((512, 512))
+        if convert:
+            image = image.convert('L')
         return image
 
 # evaluation measure
