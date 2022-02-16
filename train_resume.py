@@ -9,6 +9,14 @@ import argparse
 
 def argparser():
     p = argparse.ArgumentParser()
+    # model path
+    p.add_argument('--model_path', type= str, required= True, 
+                help= 'a path to model (.ckpt format)')
+    p.add_argument('--checkpoints', type= str, 
+                default= './model',
+                help= 'a path to checkpoint')
+    p.add_argument('--model_type', type= int, default= 0,
+                help= 'model type is either 0 for \'u-net\' or 1 for \'deep-u-net\'')
 
     # arguments
     # train, valid, test data path
@@ -25,7 +33,8 @@ def argparser():
                 help= 'probability of RandomHorizontalFlip')
     p.add_argument('--distortion_scale', type= float, default= 0.3,
                 help= 'distortion scale of RandomPerspective')
-    p.add_argument('--distortion_prob', type= float, default= 0.3)
+    p.add_argument('--distortion_prob', type= float, default= 0.3,
+                help= 'probability of RandomPerspective')
     
     # model configs
     p.add_argument('--in_channels', type= int, default= 1)
@@ -39,9 +48,7 @@ def argparser():
                     help= 'the number of workers in a Dataloader')
     p.add_argument('--patience', type= int, default = 3,
                 help= 'patience of EarlyStopping')
-    # model path
-    p.add_argument('--model_name', type= str, default= 'prototype')
-    p.add_argument('--checkpoints', type= str, default= './model')
+
 
     config = p.parse_args()
     return config
@@ -62,7 +69,15 @@ def main(config):
     valid_ds = DataLoader(valid_datasets, batch_size= config.batch_size, num_workers= config.ds_num_workers)
 
     # Model
-    u_net = Unet(config.in_channels, config.out_channels, config.lr)
+    if config.model_type == 0:
+        u_net = Unet(config.in_channels, config.out_channels)
+    elif config.model_type == 1:
+        u_net = DeepUnet(config.in_channels, config.out_channels)
+    else:
+        print('the model is not implemented yet...')
+        sys.exit()
+    check_point = torch.load(config.model_path)
+    u_net.load_state_dict(check_point['state_dict'])
 
     # Train the model 
     gpus = torch.cuda.device_count()

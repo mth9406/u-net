@@ -9,11 +9,14 @@ from model import *
 from tqdm import tqdm
 import os
 from glob import glob
+import sys
 
 def argparser():
     p = argparse.ArgumentParser()
     p.add_argument('--model_path', type= str, required= True, 
                 help= 'a path to model (.ckpt format)')
+    p.add_argument('--model_type', type= int, default= 0,
+                help= 'model type is either 0 for \'u-net\' or 1 for \'deep-u-net\'')
     p.add_argument('--test_path', type= str, default= './data(jpeg)/test',
                 help= 'a path to test dataset')
     p.add_argument('--prediction_path', type= str, default= './data(jpeg)/mask_prediction',
@@ -32,7 +35,14 @@ def main(config):
     # read moddel from a checkpoint
     check_point = torch.load(config.model_path)
     
-    model = Unet(config.in_channels, config.out_channels)
+    if config.model_type == 0:
+        model = Unet(config.in_channels, config.out_channels)
+    elif config.model_type == 1:
+        model = DeepUnet(config.in_channels, config.out_channels)
+    else:
+        print('the model is not implemented yet...')
+        sys.exit()
+        
     model.load_state_dict(check_point['state_dict'])
     model.to(device)
 
