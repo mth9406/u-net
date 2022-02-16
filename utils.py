@@ -13,19 +13,19 @@ from glob import glob
 
 class BrainTumorDataSet(Dataset):
     
-    def __init__(self, data_dir = './data', transform= None):
+    def __init__(self, data_dir = './data(jpeg)', transform= None):
         '''
-        images_path: ./data/[train, valid, test]/images/*png
-        masks_path: ./data/[train, valid, test]/masks/*png
+        images_path: ./data/[train, valid, test]/images/*jpeg
+        masks_path: ./data/[train, valid, test]/masks/*jpeg
 
         '''
         super(BrainTumorDataSet, self).__init__()
 
         # get images from image directories
-        self.images_path = glob(os.path.join(data_dir, 'images/*.png'))
+        self.images_path = glob(os.path.join(data_dir, 'images/*.jpeg'))
         # self.images = self._get_images(self.images_path)
          
-        self.masks_path = glob(os.path.join(data_dir, 'masks/*.png'))
+        self.masks_path = glob(os.path.join(data_dir, 'masks/*.jpeg'))
         # self.masks = self._get_images(self.masks_path, cv2.IMREAD_GRAYSCALE)
         
         self.transform = transform

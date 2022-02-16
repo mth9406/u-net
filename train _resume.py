@@ -1,4 +1,3 @@
-from gc import callbacks
 from torchvision import transforms
 import torch
 from torch.utils.data import DataLoader
@@ -29,8 +28,6 @@ def argparser():
     p.add_argument('--distortion_prob', type= float, default= 0.3)
     
     # model configs
-    p.add_argument('--model_type', type= int, default= 0,
-                help= 'model type is either 0 for \'u-net\' or 1 for \'deep-u-net\'')
     p.add_argument('--in_channels', type= int, default= 1)
     p.add_argument('--out_channels', type= int, default= 1)
     p.add_argument('--lr', type= float, default= 1e-2)
@@ -65,14 +62,8 @@ def main(config):
     valid_ds = DataLoader(valid_datasets, batch_size= config.batch_size, num_workers= config.ds_num_workers)
 
     # Model
-    if config.model_type == 0:
-        u_net = Unet(config.in_channels, config.out_channels, config.lr)
-    elif config.model_type == 1:
-        u_net = DeepUnet(config.in_channels, config.out_channels, config.lr)
-    else:
-        print('the model is not ready yet...')
-        sys.exit()
-        
+    u_net = Unet(config.in_channels, config.out_channels, config.lr)
+
     # Train the model 
     gpus = torch.cuda.device_count()
 
