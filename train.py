@@ -30,7 +30,7 @@ def argparser():
     
     # model configs
     p.add_argument('--model_type', type= int, default= 0,
-                help= 'model type is either 0 for \'u-net\' or 1 for \'deep-u-net\'')
+                help= 'model type is either 0 for \'u-net\' or 1 for \'deep-u-net\' and 2 for \'resnet+u-net\'')
     p.add_argument('--in_channels', type= int, default= 1)
     p.add_argument('--out_channels', type= int, default= 1)
     p.add_argument('--lr', type= float, default= 1e-2)
@@ -68,6 +68,9 @@ def main(config):
         u_net = Unet(config.in_channels, config.out_channels, config.lr)
     elif config.model_type == 1:
         u_net = DeepUnet(config.in_channels, config.out_channels, config.lr)
+    elif config.model_type == 2:
+        assert config.in_channels == 3, 'in_channels of resnet should be 3'
+        u_net = ResUNet(config.in_channels, config.out_channels, config.lr)
     else:
         print('the model is not ready yet...')
         sys.exit()

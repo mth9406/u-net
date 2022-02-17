@@ -12,13 +12,11 @@ def argparser():
     # model path
     p.add_argument('--model_path', type= str, required= True, 
                 help= 'a path to model (.ckpt format)')
-    p.add_argument('--checkpoints', type= str, 
-                default= './model',
+    p.add_argument('--checkpoints', type= str, required= True,
                 help= 'a path to checkpoint')
-    p.add_argument('--model_type', type= int, default= 0,
-                help= 'model type is either 0 for \'u-net\' or 1 for \'deep-u-net\'')
+    p.add_argument('--model_type', type= int, required= True,
+                help= 'model type is either 0 for \'u-net\' or 1 for \'deep-u-net\' and 2 for \'resnet+u-net\'')
     
-
     # arguments
     # train, valid, test data path
     p.add_argument('--train_path', type= str, default= './data(jpeg)/train')
@@ -71,12 +69,16 @@ def main(config):
 
     # Model
     if config.model_type == 0:
-        u_net = Unet(config.in_channels, config.out_channels)
+        u_net = Unet(config.in_channels, config.out_channels, config.lr)
     elif config.model_type == 1:
-        u_net = DeepUnet(config.in_channels, config.out_channels)
+        u_net = DeepUnet(config.in_channels, config.out_channels, config.lr)
+    elif config.model_type == 2:
+        assert config.in_channels == 3, 'in_channels of resnet should be 3'
+        u_net = ResUNet(config.in_channels, config.out_channels, config.lr)
     else:
-        print('the model is not implemented yet...')
+        print('the model is not ready yet...')
         sys.exit()
+
     check_point = torch.load(config.model_path)
     u_net.load_state_dict(check_point['state_dict'])
 
@@ -102,7 +104,6 @@ def main(config):
                 train_ds, valid_ds
                 )
 
-    
 if __name__ == '__main__':
     config = argparser()
     main(config)

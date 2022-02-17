@@ -17,7 +17,7 @@ def argparser():
     p.add_argument('--model_path', type= str, required= True, 
                 help= 'a path to model (.ckpt format)')
     p.add_argument('--model_type', type= int, default= 0,
-                help= 'model type is either 0 for \'u-net\' or 1 for \'deep-u-net\'')
+                help= 'model type is either 0 for \'u-net\' or 1 for \'deep-u-net\' and 2 for \'resnet+u-net\'')
     p.add_argument('--test_path', type= str, default= './data(jpeg)/test',
                 help= 'a path to test dataset')
     p.add_argument('--prediction_path', type= str, default= './data(jpeg)/mask_prediction',
@@ -36,12 +36,16 @@ def main(config):
     # read moddel from a checkpoint
     check_point = torch.load(config.model_path)
     
+    # Model
     if config.model_type == 0:
         model = Unet(config.in_channels, config.out_channels)
     elif config.model_type == 1:
         model = DeepUnet(config.in_channels, config.out_channels)
+    elif config.model_type == 2:
+        assert config.in_channels == 3, 'in_channels of resnet should be 3'
+        model = ResUNet(config.in_channels, config.out_channels)
     else:
-        print('the model is not implemented yet...')
+        print('the model is not ready yet...')
         sys.exit()
         
     model.load_state_dict(check_point['state_dict'])
@@ -75,16 +79,11 @@ def main(config):
         img = tf(pred)
         img.save(pred_data_names[i], format= 'png')
 
-    iou_path = os.path.join(config.prediction_path, 'iou.csv')    
-    with open(iou_path, 'w', newline='') as f: 
-        writer = csv.writer(f)
-        writer.writerow(ious)
-
     mean_ious = np.mean(ious)
     iou_path = os.path.join(config.prediction_path, 'mean_iou.txt')    
     with open(iou_path, 'w', newline='') as f: 
         writer = csv.writer(f)
-        writer.writerow(mean_ious)    
+        writer.writerow([mean_ious])    
 
 if __name__ == '__main__':
     config = argparser()

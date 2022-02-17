@@ -2,6 +2,8 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 import pytorch_lightning as pl
+from utils import *
+from torchvision import models
 
 class DoubleConv(nn.Module):
 
@@ -270,11 +272,116 @@ class DeepUnet(pl.LightningModule):
         return loss
 
     def test_step(self, batch, batch_idx):
+        x, _ = batch
+        y_hat = self(x)
+        return y_hat 
+
+    def configure_optimizers(self):
+        return torch.optim.Adam(self.parameters(), lr= self.lr)
+
+# U-net using Resnet as a backbone network   
+class ResUNet(pl.LightningModule):
+
+    def __init__(self, in_channels, out_channels, 
+                lr=1e-3):
+        super(ResUNet, self).__init__()
+        
+        self.lr = lr
+        self.in_channels = in_channels
+        self.out_channels = out_channels
+
+        self.backbone = models.resnet34(pretrained= True)
+        self.base_layers = list(self.backbone.children())
+
+        # encoder layer (resnet)
+        # assume input image batch's shape = bs, 3, 512, 512
+        self.enc0 = nn.Sequential(*self.base_layers[:3]) # bs, 64, 256, 256
+        self.enc1 = nn.Sequential(*self.base_layers[3:5]) # bs, 64, 128, 128
+        self.enc2 = nn.Sequential(*self.base_layers[5]) # bs, 128, 64, 64
+        self.enc3 = nn.Sequential(*self.base_layers[6]) # bs, 256, 32, 32
+        self.enc4 = nn.Sequential(*self.base_layers[7]) # bs, 512, 16, 16
+
+        # decoder layer
+        # up-sample
+        self.up1 = nn.ConvTranspose2d(512, 256, 2, 2) # bs, 256, 32, 32
+        # concat up1 and enc3: bs, 256+256, 32, 32
+        self.conv1 = DoubleConvResidBlock(256+256, 256) # bs, 256, 32, 32 
+        
+        self.up2 = nn.ConvTranspose2d(256, 128, 2, 2) # bs, 128, 64, 64
+        # concat up2 and enc2: bs, 128+128, 64, 64
+        self.conv2 = DoubleConvResidBlock(128+128, 128) # bs, 128, 64, 64
+        
+        self.up3 = nn.ConvTranspose2d(128, 64, 2, 2) # bs, 64, 128, 128
+        # concat up3 and enc1: bs, 64+64, 128, 128
+        self.conv3 = DoubleConvResidBlock(64+64, 64) # bs, 64, 128, 128
+
+        self.up4 = nn.ConvTranspose2d(64, 64, 2, 2) # bs, 64, 256, 256
+        # concat up4 and enc0: bs, 64+64, 128, 128
+        self.conv4 = DoubleConvResidBlock(64+64, 64) # bs, 64, 256, 256
+
+        self.decode = nn.Sequential(
+            nn.ConvTranspose2d(64, 32, 2, 2), 
+            nn.Conv2d(32, out_channels, 1),
+            nn.Sigmoid()
+        )
+        
+
+    def forward(self, x):
+        # encoder
+        c1 = self.enc0(x)
+        c2 = self.enc1(c1)
+        c3 = self.enc2(c2)
+        c4 = self.enc3(c3)
+        c5 = self.enc4(c4)
+
+        # decoder 
+        u1 = self.up1(c5)
+        cat1 = torch.cat([u1, c4], dim= 1)
+        uc1 = self.conv1(cat1)
+
+        u2 = self.up2(uc1)
+        cat2 = torch.cat([u2, c3], dim= 1)
+        uc2 = self.conv2(cat2)
+
+        u3 = self.up3(uc2)
+        cat3 = torch.cat([u3, c2], dim= 1)
+        uc3 = self.conv3(cat3)
+
+        u4 = self.up4(uc3)
+        cat4 = torch.cat([u4, c1], dim= 1)
+        uc4 = self.conv4(cat4)
+
+        # return decoder
+        out = self.decode(uc4)
+        
+        return out
+
+    def predict(self, x, thr= 0.5):
+        p = self(x)
+        p[p > thr] = 255 
+        p[p < thr] = 0
+        return p
+
+    def training_step(self, batch, batch_idx):
         x, y = batch
         y_hat = self(x)
         loss = F.binary_cross_entropy(y_hat, y)
-        self.log('test_loss', loss)
-        return loss 
+        self.log("train_loss", loss, on_step= True, 
+                    on_epoch= True, prog_bar=True, logger=True)
+        return loss
+    
+    def validation_step(self, batch, batch_idx):
+        x, y = batch
+        y_hat = self(x)
+        loss = F.binary_cross_entropy(y_hat, y)
+        # iou = mask_intersection_over_union(y_hat.detach().cpu().numpy(), y.detach().cpu().numpy())
+        self.log('val_loss', loss, on_step= True, 
+                    on_epoch= True, prog_bar=True, logger=True)
+
+    def test_step(self, batch, batch_idx):
+        x, _ = batch
+        y_hat = self(x)
+        return y_hat
 
     def configure_optimizers(self):
         return torch.optim.Adam(self.parameters(), lr= self.lr)
