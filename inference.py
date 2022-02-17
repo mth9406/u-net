@@ -10,6 +10,7 @@ from tqdm import tqdm
 import os
 from glob import glob
 import sys
+import csv
 
 def argparser():
     p = argparse.ArgumentParser()
@@ -55,7 +56,7 @@ def main(config):
     # predictions
     print('making predictions ...')
     preds = []
-    # socres = []
+    ious = []
     for batch_idx, (img, mask) in tqdm(enumerate(test_ds)):
         model.eval()
         with torch.no_grad():
@@ -64,6 +65,7 @@ def main(config):
             pred[pred > config.thr] = 1.
             pred[pred < config.thr] = 0.
             preds.append(pred)
+            ious.append(mask_intersection_over_union(mask, pred).item())
     
     preds = torch.cat(preds, dim=0) # N, 1, 512, 512
     print(f'converting torch to PIL images and save in {config.prediction_path}...')
@@ -72,7 +74,18 @@ def main(config):
     for i, pred in tqdm(enumerate(preds)):
         img = tf(pred)
         img.save(pred_data_names[i], format= 'png')
-    
+
+    iou_path = os.path.join(config.prediction_path, 'iou.csv')    
+    with open(iou_path, 'w', newline='') as f: 
+        writer = csv.writer(f)
+        writer.writerow(ious)
+
+    mean_ious = np.mean(ious)
+    iou_path = os.path.join(config.prediction_path, 'mean_iou.txt')    
+    with open(iou_path, 'w', newline='') as f: 
+        writer = csv.writer(f)
+        writer.writerow(mean_ious)    
+
 if __name__ == '__main__':
     config = argparser()
     main(config)

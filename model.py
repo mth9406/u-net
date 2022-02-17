@@ -10,7 +10,23 @@ class DoubleConv(nn.Module):
         self.block = nn.Sequential(
                 nn.Conv2d(in_channels, out_channels, (3,3), padding= 1),
                 nn.BatchNorm2d(out_channels),
-                nn.ReLU(),
+                nn.ReLU(inplace=True),
+                nn.Conv2d(out_channels, out_channels, (3,3), padding= 1),
+                nn.BatchNorm2d(out_channels),
+                nn.ReLU(inplace=True)
+        )
+        
+    def forward(self, x):
+        return self.block(x)
+
+class DoubleConvResidBlock(nn.Module):
+
+    def __init__(self, in_channels, out_channels):
+        super(DoubleConvResidBlock, self).__init__()
+        self.block = nn.Sequential(
+                nn.Conv2d(in_channels, out_channels, (3,3), padding= 1),
+                nn.BatchNorm2d(out_channels),
+                nn.ReLU(inplace= True),
                 nn.Conv2d(out_channels, out_channels, (3,3), padding= 1),
                 nn.BatchNorm2d(out_channels)
         )
@@ -19,7 +35,7 @@ class DoubleConv(nn.Module):
     def forward(self, x):
         out = self.block(x)
         out = out + self.mapping(x)
-        out = F.relu(out)
+        out = F.relu(out, inplace= True)
         return out
 
 # Original U-net with residual blocks
@@ -117,7 +133,8 @@ class Unet(pl.LightningModule):
         x, y = batch
         y_hat = self(x)
         loss = F.binary_cross_entropy(y_hat, y)
-        self.log('val_loss', loss)
+        self.log('val_loss', loss, on_step= True, 
+                    on_epoch= True, prog_bar=True, logger=True)
         return loss
 
     def test_step(self, batch, batch_idx):
@@ -141,40 +158,40 @@ class DeepUnet(pl.LightningModule):
         self.in_channels = in_channels
         self.out_channels = out_channels
 
-        self.conv1 = DoubleConv(in_channels, 8)
-        self.conv2 = DoubleConv(8, 16)
-        self.conv3 = DoubleConv(16, 32)
-        self.conv4 = DoubleConv(32, 64)
-        self.conv5 = DoubleConv(64, 128)
-        self.conv6 = DoubleConv(128, 256)
-        self.conv7 = DoubleConv(256, 512)
+        self.conv1 = DoubleConvResidBlock(in_channels, 4)
+        self.conv2 = DoubleConvResidBlock(4, 8)
+        self.conv3 = DoubleConvResidBlock(8, 16)
+        self.conv4 = DoubleConvResidBlock(16, 32)
+        self.conv5 = DoubleConvResidBlock(32, 64)
+        self.conv6 = DoubleConvResidBlock(64, 128)
+        self.conv7 = DoubleConvResidBlock(128, 256)
 
 
         self.pool = nn.MaxPool2d(kernel_size=2, stride=2)
         # halves the H X W
         
-        self.up1 = nn.ConvTranspose2d(in_channels = 512, 
-                    out_channels =256, kernel_size = 2, stride= 2)
-        self.up2 = nn.ConvTranspose2d(in_channels = 256, 
+        self.up1 = nn.ConvTranspose2d(in_channels = 256, 
                     out_channels =128, kernel_size = 2, stride= 2)
-        self.up3 = nn.ConvTranspose2d(in_channels = 128, 
+        self.up2 = nn.ConvTranspose2d(in_channels = 128, 
                     out_channels =64, kernel_size = 2, stride= 2)
-        self.up4 = nn.ConvTranspose2d(in_channels = 64, 
+        self.up3 = nn.ConvTranspose2d(in_channels = 64, 
                     out_channels =32, kernel_size = 2, stride= 2)
-        self.up5 = nn.ConvTranspose2d(in_channels = 32, 
+        self.up4 = nn.ConvTranspose2d(in_channels = 32, 
                     out_channels =16, kernel_size = 2, stride= 2)
-        self.up6 = nn.ConvTranspose2d(in_channels = 16, 
+        self.up5 = nn.ConvTranspose2d(in_channels = 16, 
                     out_channels =8, kernel_size = 2, stride= 2)
+        self.up6 = nn.ConvTranspose2d(in_channels = 8, 
+                    out_channels =4, kernel_size = 2, stride= 2)
 
-        self.up_conv1 = DoubleConv(512, 256)
-        self.up_conv2 = DoubleConv(256, 128)
-        self.up_conv3 = DoubleConv(128, 64)
-        self.up_conv4 = DoubleConv(64, 32)
-        self.up_conv5 = DoubleConv(32, 16)
-        self.up_conv6 = DoubleConv(16, 8)
+        self.up_conv1 = DoubleConvResidBlock(256, 128)
+        self.up_conv2 = DoubleConvResidBlock(128, 64)
+        self.up_conv3 = DoubleConvResidBlock(64, 32)
+        self.up_conv4 = DoubleConvResidBlock(32, 16)
+        self.up_conv5 = DoubleConvResidBlock(16, 8)
+        self.up_conv6 = DoubleConvResidBlock(8, 4)
         
         self.decode = nn.Sequential(
-            nn.Conv2d(8, out_channels, 1),
+            nn.Conv2d(4, out_channels, 1),
             nn.Sigmoid()
         )
         

@@ -17,6 +17,7 @@ def argparser():
                 help= 'a path to checkpoint')
     p.add_argument('--model_type', type= int, default= 0,
                 help= 'model type is either 0 for \'u-net\' or 1 for \'deep-u-net\'')
+    
 
     # arguments
     # train, valid, test data path
@@ -82,20 +83,20 @@ def main(config):
     # Train the model 
     gpus = torch.cuda.device_count()
 
+    checkpoint_callback = ModelCheckpoint(
+                                    dirpath= config.checkpoints,
+                                    filename= '{epoch}-{val_loss:.2f}',
+                                    monitor="val_loss",
+                                    mode="min"
+                                )
+
     trainer = pl.Trainer(
             checkpoint_callback=True,
             logger=True,
             max_epochs=config.max_epochs, gpus=gpus,
-            weights_save_path= config.checkpoints,
-            callbacks= [EarlyStopping(monitor="val_loss", patience= config.patience)]
+            # weights_save_path= config.checkpoints,
+            callbacks= [checkpoint_callback, EarlyStopping(monitor="val_loss", patience= config.patience)]
     )
-
-    # checkpoint_callback = ModelCheckpoint(
-    #                                 monitor="val_loss",
-    #                                 dirpath="./model",
-    #                                 filename=config.model_name,
-    #                                 mode="min"
-    #                             )
 
     trainer.fit(u_net, 
                 train_ds, valid_ds
