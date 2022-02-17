@@ -1,7 +1,7 @@
 # u-net
 
 # how to use
-
+```
 (1) train.py
 usage: train.py [-h] [--train_path TRAIN_PATH] [--valid_path VALID_PATH]
                 [--test_path TEST_PATH] [--rot_degree ROT_DEGREE]
@@ -107,3 +107,4 @@ optional arguments:
   --batch_size BATCH_SIZE
   --in_channels IN_CHANNELS
   --out_channels OUT_CHANNELS
+```
