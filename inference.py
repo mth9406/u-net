@@ -3,6 +3,7 @@ import numpy as np
 import torch
 from torchvision import transforms
 from PIL import Image
+from torch.nn import functional as F
 from torch.utils.data import DataLoader
 from utils import *
 from model import *
@@ -27,6 +28,7 @@ def argparser():
     p.add_argument('--batch_size', type= int, default= 32)
     p.add_argument('--in_channels', type= int, default= 1)
     p.add_argument('--out_channels', type= int, default= 1)
+    p.add_argument('--is_validation', type= bool, default= True)
     
     config = p.parse_args()
     return config
@@ -51,7 +53,8 @@ def main(config):
     model.load_state_dict(check_point['state_dict'])
     model.to(device)
 
-    test_datasets = BrainTumorDataSet(config.test_path)
+    test_datasets = BrainTumorDataSet(config.test_path) if config.is_validation \
+                         else BrainTumorDataSet(config.test_path, is_train= False)
     test_data_names = glob(os.path.join(config.test_path, 'images/*.jpeg'))
     temp = os.path.join(config.test_path,'images')
     pred_data_names = list(map(lambda x:x.replace(temp, config.prediction_path), test_data_names))
@@ -65,11 +68,12 @@ def main(config):
         model.eval()
         with torch.no_grad():
             img = img.to(device)
-            pred = model(img).detach().cpu()
+            pred = F.sigmoid(model(img)).detach().cpu()
             pred[pred > config.thr] = 1.
             pred[pred < config.thr] = 0.
             preds.append(pred)
-            ious.append(mask_intersection_over_union(mask, pred).item())
+            if config.is_validation:
+                ious.append(mask_intersection_over_union(mask, pred).item())
     
     preds = torch.cat(preds, dim=0) # N, 1, 512, 512
     print(f'converting torch to PIL images and save in {config.prediction_path}...')
@@ -79,11 +83,12 @@ def main(config):
         img = tf(pred)
         img.save(pred_data_names[i], format= 'png')
 
-    mean_ious = np.mean(ious)
-    iou_path = os.path.join(config.prediction_path, 'mean_iou.txt')    
-    with open(iou_path, 'w', newline='') as f: 
-        writer = csv.writer(f)
-        writer.writerow([mean_ious])    
+    if config.is_validation:
+        mean_ious = np.mean(ious)
+        iou_path = os.path.join(config.prediction_path, 'mean_iou.txt')    
+        with open(iou_path, 'w', newline='') as f: 
+            writer = csv.writer(f)
+            writer.writerow([mean_ious])    
 
 if __name__ == '__main__':
     config = argparser()

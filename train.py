@@ -80,7 +80,7 @@ def main(config):
 
     checkpoint_callback = ModelCheckpoint(
                                     dirpath= config.checkpoints,
-                                    filename= '{epoch}-{val_loss:.2f}',
+                                    filename= '{epoch}-{val_loss:.4f}',
                                     monitor="val_loss",
                                     mode="min"
                                 )

@@ -75,8 +75,7 @@ class Unet(pl.LightningModule):
         self.up_conv4 = DoubleConv(64, 32)
 
         self.decode = nn.Sequential(
-            nn.Conv2d(32, out_channels, 1),
-            nn.Sigmoid()
+            nn.Conv2d(32, out_channels, 1)
         )
         
 
@@ -126,7 +125,7 @@ class Unet(pl.LightningModule):
     def training_step(self, batch, batch_idx):
         x, y = batch
         y_hat = self(x)
-        loss = F.binary_cross_entropy(y_hat, y)
+        loss = F.binary_cross_entropy_with_logits(y_hat, y)
         self.log("train_loss", loss, on_step= True, 
                     on_epoch= True, prog_bar=True, logger=True)
         return loss
@@ -134,17 +133,15 @@ class Unet(pl.LightningModule):
     def validation_step(self, batch, batch_idx):
         x, y = batch
         y_hat = self(x)
-        loss = F.binary_cross_entropy(y_hat, y)
+        loss = F.binary_cross_entropy_with_logits(y_hat, y)
         self.log('val_loss', loss, on_step= True, 
                     on_epoch= True, prog_bar=True, logger=True)
         return loss
 
     def test_step(self, batch, batch_idx):
-        x, y = batch
+        x, _ = batch
         y_hat = self(x)
-        loss = F.binary_cross_entropy(y_hat, y)
-        self.log('test_loss', loss)
-        return loss 
+        return y_hat 
 
     def configure_optimizers(self):
         return torch.optim.Adam(self.parameters(), lr= self.lr)
@@ -259,7 +256,7 @@ class DeepUnet(pl.LightningModule):
     def training_step(self, batch, batch_idx):
         x, y = batch
         y_hat = self(x)
-        loss = F.binary_cross_entropy(y_hat, y)
+        loss = F.binary_cross_entropy_with_logits(y_hat, y)
         self.log("train_loss", loss, on_step= True, 
                     on_epoch= True, prog_bar=True, logger=True)
         return loss
@@ -267,8 +264,9 @@ class DeepUnet(pl.LightningModule):
     def validation_step(self, batch, batch_idx):
         x, y = batch
         y_hat = self(x)
-        loss = F.binary_cross_entropy(y_hat, y)
-        self.log('val_loss', loss)
+        loss = F.binary_cross_entropy_with_logits(y_hat, y)
+        self.log('val_loss', loss, on_step= True, 
+                    on_epoch= True, prog_bar=True, logger=True)
         return loss
 
     def test_step(self, batch, batch_idx):
@@ -321,8 +319,7 @@ class ResUNet(pl.LightningModule):
 
         self.decode = nn.Sequential(
             nn.ConvTranspose2d(64, 32, 2, 2), 
-            nn.Conv2d(32, out_channels, 1),
-            nn.Sigmoid()
+            nn.Conv2d(32, out_channels, 1)
         )
         
 
@@ -365,7 +362,7 @@ class ResUNet(pl.LightningModule):
     def training_step(self, batch, batch_idx):
         x, y = batch
         y_hat = self(x)
-        loss = F.binary_cross_entropy(y_hat, y)
+        loss = F.binary_cross_entropy_with_logits(y_hat, y)
         self.log("train_loss", loss, on_step= True, 
                     on_epoch= True, prog_bar=True, logger=True)
         return loss
@@ -373,7 +370,7 @@ class ResUNet(pl.LightningModule):
     def validation_step(self, batch, batch_idx):
         x, y = batch
         y_hat = self(x)
-        loss = F.binary_cross_entropy(y_hat, y)
+        loss = F.binary_cross_entropy_with_logits(y_hat, y)
         # iou = mask_intersection_over_union(y_hat.detach().cpu().numpy(), y.detach().cpu().numpy())
         self.log('val_loss', loss, on_step= True, 
                     on_epoch= True, prog_bar=True, logger=True)
