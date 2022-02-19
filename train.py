@@ -31,6 +31,10 @@ def argparser():
     # model configs
     p.add_argument('--model_type', type= int, default= 0,
                 help= 'model type is either 0 for \'u-net\' or 1 for \'deep-u-net\' and 2 for \'resnet+u-net\'')
+    p.add_argument('--is_continue_training', type= bool, default= False,
+                help= 'set \'True\' if you are to continue training')
+    p.add_argument('--model_path', type= str, required= False,
+                help= 'saved model path to resume training (.ckpt format)')
     p.add_argument('--in_channels', type= int, default= 1)
     p.add_argument('--out_channels', type= int, default= 1)
     p.add_argument('--lr', type= float, default= 1e-2)
@@ -74,7 +78,11 @@ def main(config):
     else:
         print('the model is not ready yet...')
         sys.exit()
-        
+    
+    if config.is_continue_training:
+        check_point = torch.load(config.model_path)
+        u_net.load_state_dict(check_point['state_dict'])
+
     # Train the model 
     gpus = torch.cuda.device_count()
 
