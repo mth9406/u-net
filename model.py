@@ -111,21 +111,18 @@ class Unet(pl.LightningModule):
         u4 = self.up4(uc3) # 64, 512, 512 
         cat4 = torch.cat([u4, c1], dim= 1) # 128, 512, 612
         uc4 = self.up_conv4(cat4) # 64, 512, 512
-
         outputs = self.decode(uc4) # out_channels(=1), 512, 512 
         
         return outputs
 
-    def predict(self, x, thr= 0.5):
+    def predict(self, x):
         p = self(x)
-        p[p > thr] = 255 
-        p[p < thr] = 0
-        return p
+        return torch.argmax(p, dim=1)
 
     def training_step(self, batch, batch_idx):
         x, y = batch
-        y_hat = self(x)
-        loss = F.binary_cross_entropy_with_logits(y_hat, y)
+        y_hat = self(x) 
+        loss = F.cross_entropy(y_hat, y )
         self.log("train_loss", loss, on_step= True, 
                     on_epoch= True, prog_bar=True, logger=True)
         return loss
@@ -133,7 +130,7 @@ class Unet(pl.LightningModule):
     def validation_step(self, batch, batch_idx):
         x, y = batch
         y_hat = self(x)
-        loss = F.binary_cross_entropy_with_logits(y_hat, y)
+        loss = F.cross_entropy(y_hat, y)
         self.log('val_loss', loss, on_step= True, 
                     on_epoch= True, prog_bar=True, logger=True)
         return loss
@@ -190,8 +187,7 @@ class DeepUnet(pl.LightningModule):
         self.up_conv6 = DoubleConvResidBlock(8, 4)
         
         self.decode = nn.Sequential(
-            nn.Conv2d(4, out_channels, 1),
-            nn.Sigmoid()
+            nn.Conv2d(4, out_channels, 1)
         )
         
 
@@ -247,16 +243,14 @@ class DeepUnet(pl.LightningModule):
         
         return outputs
 
-    def predict(self, x, thr= 0.5):
+    def predict(self, x):
         p = self(x)
-        p[p > thr] = 255 
-        p[p < thr] = 0
-        return p
+        return torch.argmax(p, dim=1)
 
     def training_step(self, batch, batch_idx):
         x, y = batch
         y_hat = self(x)
-        loss = F.binary_cross_entropy_with_logits(y_hat, y)
+        loss = F.cross_entropy(y_hat, y)
         self.log("train_loss", loss, on_step= True, 
                     on_epoch= True, prog_bar=True, logger=True)
         return loss
@@ -264,7 +258,7 @@ class DeepUnet(pl.LightningModule):
     def validation_step(self, batch, batch_idx):
         x, y = batch
         y_hat = self(x)
-        loss = F.binary_cross_entropy_with_logits(y_hat, y)
+        loss = F.cross_entropy(y_hat, y)
         self.log('val_loss', loss, on_step= True, 
                     on_epoch= True, prog_bar=True, logger=True)
         return loss
@@ -353,16 +347,17 @@ class ResUNet(pl.LightningModule):
         
         return out
 
-    def predict(self, x, thr= 0.5):
+    def predict(self, x):
+        # returns mask
+        # to use, 
+        # image[p == class number]
         p = self(x)
-        p[p > thr] = 255 
-        p[p < thr] = 0
-        return p
-
+        return torch.argmax(p, dim= 1)
+        
     def training_step(self, batch, batch_idx):
         x, y = batch
         y_hat = self(x)
-        loss = F.binary_cross_entropy_with_logits(y_hat, y)
+        loss = F.cross_entropy(y_hat, y)
         self.log("train_loss", loss, on_step= True, 
                     on_epoch= True, prog_bar=True, logger=True)
         return loss
@@ -370,7 +365,7 @@ class ResUNet(pl.LightningModule):
     def validation_step(self, batch, batch_idx):
         x, y = batch
         y_hat = self(x)
-        loss = F.binary_cross_entropy_with_logits(y_hat, y)
+        loss = F.cross_entropy(y_hat, y)
         # iou = mask_intersection_over_union(y_hat.detach().cpu().numpy(), y.detach().cpu().numpy())
         self.log('val_loss', loss, on_step= True, 
                     on_epoch= True, prog_bar=True, logger=True)
